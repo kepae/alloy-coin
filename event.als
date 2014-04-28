@@ -2,13 +2,14 @@ module event [TimeState]
 
 open util/ordering [TimeState]
 
-sig Event {
+abstract sig Event {
 	pre, post: TimeState,
+}{
+	post = pre.next
 }
 
 fact EventTraces {
-	all t: TimeState - last | some e: Event | e.pre = t and e.post = t.next
-	last not in Event.pre
+	all t: TimeState - last | one e: Event | e.pre = t
 }
 
 run {} for 3

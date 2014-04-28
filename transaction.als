@@ -1,9 +1,9 @@
-module tansaction
+module tansaction[OriginTransaction]
 
 open asymmetricKey
 
 sig Hash {
-	old : one Transaction,
+	old : one Transaction + OriginTransaction,
 	pubKey : one PubKey
 }
 -- same imput, same hash
