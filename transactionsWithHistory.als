@@ -14,7 +14,7 @@ sig TimeState {
 sig newTranaction extends event/Event {}{
 	pre.leaves in post.leaves								-- we don't forget old transactions
 	post.leaves.^(hash.old) in pre.leaves		-- we must build off preexisting transactions
-	pre.leaves != post.leaves							-- we must build off preexisting 
+	pre.leaves != post.leaves							-- we must do _something_ new
 }
 
 fact {
