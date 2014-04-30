@@ -29,8 +29,8 @@ fact Children {
 }
 
 fact BuildingLedger {
-	all disj a,b : Block | a.hash = b => b.ledger in a.ledger
-	all t : Transaction | t in Block.ledger
+	all disj a : Block | a.hash.ledger in a.ledger // all blocks contain previous' ledger
+	Transaction in Block.ledger
 }
 
 fact Genesis {
