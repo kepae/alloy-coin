@@ -1,4 +1,4 @@
-module BlockChain
+module blockChain
 
 open util/relation as rel
 
@@ -38,6 +38,4 @@ fact Genesis {
 }
 
 run {} for 6
-
-	
 
