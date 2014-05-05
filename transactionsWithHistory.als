@@ -27,7 +27,7 @@ assert AcylicTransactionHistory {
 }
 check AcylicTransactionHistory for 8
 
-assert NoCheating { -- the number of coins in circulation == number of coins spawned thus far
+assert NoFraud { -- the number of coins in circulation == number of coins spawned thus far
 	all t : TimeState {
 		#(t.leaves - t.leaves.hash.old) = #(SpawnedCoin & t.leaves)
 	}
