@@ -9,7 +9,13 @@ sig SpawnedCoin{}
 
 abstract sig Block {
 	ledger: set Transaction + SpawnedCoin,
+}{
+	one SpawnedCoin & ledger //every block spawns one coin
 }
+fact {
+	all c : SpawnedCoin | one c.~ledger // every block spawns a unique coin
+}
+
 
 one sig GenesisBlock extends Block {}{
 	ledger in SpawnedCoin // no normal transaction in a genesis block
@@ -31,17 +37,10 @@ fact BlockChildren {
 fact BuildingLedger {
 	Block.ledger = SpawnedCoin + Transaction // no orphan transaction
 
-	all disj a : Block | a.hash.ledger in a.ledger // all blocks contain previous' ledger
+//	all disj a : Block | a.hash.ledger in a.ledger // all blocks contain previous' ledger
 
-	all b : Block | one b.ledger & SpawnedCoin // every block spawns one bitcoin
-	all c : SpawnedCoin | one c.~ledger
-
-	all b : ChildBlock | // transactions work from old blocks
+	all b : Block | // transactions work from old blocks
 		b.ledger.hash.old in b.(^hash).ledger
-}
-
-fact Genesis {
---	all b : ChildBlock | GenesisBlock in ~hash[b]
 }
 
 check Assymetric{
@@ -53,5 +52,4 @@ check NoWeirdTransactionHistory {
 	irreflexive[hash.old]
 } for 8
 
-run {} for 6
-
+run {}
