@@ -33,23 +33,43 @@ fact BlockChildren {
 	irreflexive[ChildBlock <: hash]
 }
 
-fact BuildingLedger {
+fact NoOrphanTransactions {
 	Block.ledger = Transaction	-- no orphan transaction
-	no ^(hash.old) & iden		-- acyclic transaction history
-
-	all b : Block | b.ledger.hash.old in b.(^hash + iden).ledger
-	-- transactions work from current or older blocks
 }
 
-
-
-check Asymmetric {
+check AsymmetricBlockChain {
 	all disj a, b : Block | a.hash = b => b.hash != a
 } for 8
 
-check NoWeirdTransactionHistory {
-	acyclic[hash.old, Transaction]
-	irreflexive[hash.old]
-} for 5
 
-run {} for 5
+
+
+pred AcyclicTransactionHistory {
+	no ^(hash.old) & iden
+}
+
+ -- the number of coins in circulation at the end = number of coins spawned
+pred NoFraud {
+	#GenesisTransaction = #(Transaction - RealTransaction.hash.old)
+}
+
+pred OneGoodBlockChain {
+	one Block - (ChildBlock.hash) -- one tip/leaf/chain
+	all b : ChildBlock | GoodBlock[b]
+}
+
+pred GoodBlock[b : Block] { -- transactions work from current or older blocks
+	all t : b.ledger & RealTransaction |
+		some t.^(hash.old) & (b.(^hash).ledger + (b.ledger & GenesisTransaction))
+}
+
+pred GoodStuff {
+	AcyclicTransactionHistory
+	NoFraud
+}
+
+check GoodBlockImpliesGoodStuff {
+	OneGoodBlockChain => GoodStuff
+}
+-- make sure GoodStuff is even possible
+run { some RealTransaction and GoodStuff } for 5
