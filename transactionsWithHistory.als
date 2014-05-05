@@ -22,6 +22,9 @@ fact {
 	first.leaves in SpawnedCoin									-- begin with only spawned coins
 }
 
+
+
+
 assert AcylicTransactionHistory {
 	no ^(hash.old) & iden
 }
@@ -32,4 +35,4 @@ assert NoFraud { -- the number of coins in circulation == number of coins spawne
 		#(t.leaves - t.leaves.hash.old) = #(SpawnedCoin & t.leaves)
 	}
 }
-check NoCheating for 8
+check NoFraud for 8

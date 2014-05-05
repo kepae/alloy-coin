@@ -19,7 +19,7 @@ sig Signature {
 	signer : one PrivKey
 }
 -- same imput, same key, same hash
-fact HashCannonicity {
+fact SignatureCannonicity {
 	all disj a, b : Signature {
 		a.signee != b.signee
 		a.signer != b.signer
@@ -35,6 +35,11 @@ sig Transaction {
 	oldOwner.@signee = hash
 
 	hash.old.@newOwner = oldOwner.signer.pub -- crucial verifcation step !!
+}
+
+fact NoExtraneousObjects {
+	Hash in Transaction.hash
+	Signature in Transaction.oldOwner
 }
 
 run {}

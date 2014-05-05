@@ -2,40 +2,56 @@ module blockChain
 
 open util/relation as rel
 
-//open transaction[Transaction]
+open transaction[SpawnedCoin] -- each block introduces a bitcoin
 //open util/ordering [Block]
 
-sig Transaction {}
+sig SpawnedCoin{}
 
 abstract sig Block {
-	ledger: set Transaction,
+	ledger: set Transaction + SpawnedCoin,
 }
 
-one sig GenesisBlock extends Block {}
+one sig GenesisBlock extends Block {}{
+	ledger in SpawnedCoin // no normal transaction in a genesis block
+}
 
 sig ChildBlock extends Block {
-	hash: one Block
+	hash: one Block,
 }
 
-fact GenesisHash {
-	--all g : GenesisBlock | g.hash =g
+fact HashCannonicity {
+	all disj a, b : ChildBlock | a.hash != b.hash
 }
 
-fact Children {
-	irreflexive[hash] //all c : ChildBlock | c not in c.hash							// not self-looping
-	all disj a,b : Block | a.hash = b => b.hash != a 		// asymmetric
-	//all disj a,b,c : Block | a.hash = b => c.hash != b 	// exclusive, for the valid and longest block chain
-	acyclic[hash, Block]
+fact BlockChildren {
+	acyclic[ChildBlock <: hash, Block]
+	irreflexive[ChildBlock <: hash]
 }
 
 fact BuildingLedger {
+	Block.ledger = SpawnedCoin + Transaction // no orphan transaction
+
 	all disj a : Block | a.hash.ledger in a.ledger // all blocks contain previous' ledger
-	Transaction in Block.ledger
+
+	all b : Block | one b.ledger & SpawnedCoin // every block spawns one bitcoin
+	all c : SpawnedCoin | one c.~ledger
+
+	all b : ChildBlock | // transactions work from old blocks
+		b.ledger.hash.old in b.(^hash).ledger
 }
 
 fact Genesis {
 --	all b : ChildBlock | GenesisBlock in ~hash[b]
 }
+
+check Assymetric{
+	all disj a,b : Block | a.hash = b => b.hash != a 		// asymmetric
+}
+
+check NoWeirdTransactionHistory {
+	acyclic[hash.old, Transaction]
+	irreflexive[hash.old]
+} for 8
 
 run {} for 6
 
