@@ -25,6 +25,7 @@ fact { -- no double spending
 }
 
 
+
 check AcylicTransactionHistory {
 	no ^(hash.old) & iden
 } for 8

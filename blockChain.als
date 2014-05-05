@@ -8,15 +8,16 @@ open transaction
 abstract sig Block {
 	ledger: set Transaction,
 }{
-	one GenesisTransaction & ledger //every block spawns one coin
+	one GenesisTransaction & ledger	-- every block spawns one coin
 }
 fact {
-	all c : GenesisTransaction | one c.~ledger // every block spawns a unique coin
+	all c : GenesisTransaction | one c.~ledger	-- every block spawns a unique coin
 }
 
 
 one sig GenesisBlock extends Block {}{
-	ledger in GenesisTransaction // no normal transaction in a genesis block
+	-- no real transactions in a genesis block
+	ledger in GenesisTransaction
 }
 
 sig ChildBlock extends Block {
@@ -33,18 +34,17 @@ fact BlockChildren {
 }
 
 fact BuildingLedger {
-	Block.ledger = Transaction // no orphan transaction
+	Block.ledger = Transaction	-- no orphan transaction
+	no ^(hash.old) & iden		-- acyclic transaction history
 
-//	all disj a : Block | a.hash.ledger in a.ledger // all blocks contain previous' ledger
-
-	no ^(hash.old) & iden // acyclic transaction history
-
-	all b : Block | // transactions work from current or older blocks
-		b.ledger.hash.old in b.(^hash + iden).ledger
+	all b : Block | b.ledger.hash.old in b.(^hash + iden).ledger
+	-- transactions work from current or older blocks
 }
 
-check Assymetric {
-	all disj a, b : Block | a.hash = b => b.hash != a 		// asymmetric
+
+
+check Asymmetric {
+	all disj a, b : Block | a.hash = b => b.hash != a
 } for 8
 
 check NoWeirdTransactionHistory {
