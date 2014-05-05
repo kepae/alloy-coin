@@ -2,23 +2,21 @@ module blockChain
 
 open util/relation as rel
 
-open transaction[SpawnedCoin] -- each block introduces a bitcoin
+open transaction
 //open util/ordering [Block]
 
-sig SpawnedCoin{}
-
 abstract sig Block {
-	ledger: set Transaction + SpawnedCoin,
+	ledger: set Transaction,
 }{
-	one SpawnedCoin & ledger //every block spawns one coin
+	one GenesisTransaction & ledger //every block spawns one coin
 }
 fact {
-	all c : SpawnedCoin | one c.~ledger // every block spawns a unique coin
+	all c : GenesisTransaction | one c.~ledger // every block spawns a unique coin
 }
 
 
 one sig GenesisBlock extends Block {}{
-	ledger in SpawnedCoin // no normal transaction in a genesis block
+	ledger in GenesisTransaction // no normal transaction in a genesis block
 }
 
 sig ChildBlock extends Block {
@@ -35,21 +33,23 @@ fact BlockChildren {
 }
 
 fact BuildingLedger {
-	Block.ledger = SpawnedCoin + Transaction // no orphan transaction
+	Block.ledger = Transaction // no orphan transaction
 
 //	all disj a : Block | a.hash.ledger in a.ledger // all blocks contain previous' ledger
 
-	all b : Block | // transactions work from old blocks
-		b.ledger.hash.old in b.(^hash).ledger
+	no ^(hash.old) & iden // acyclic transaction history
+
+	all b : Block | // transactions work from current or older blocks
+		b.ledger.hash.old in b.(^hash + iden).ledger
 }
 
-check Assymetric{
-	all disj a,b : Block | a.hash = b => b.hash != a 		// asymmetric
-}
+check Assymetric {
+	all disj a, b : Block | a.hash = b => b.hash != a 		// asymmetric
+} for 8
 
 check NoWeirdTransactionHistory {
 	acyclic[hash.old, Transaction]
 	irreflexive[hash.old]
-} for 8
+} for 5
 
-run {}
+run {} for 5

@@ -1,9 +1,9 @@
-module tansaction[OriginTransaction]
+module transaction
 
 open asymmetricKey
 
 sig Hash {
-	old : one Transaction + OriginTransaction,
+	old : one Transaction,
 	pubKey : one PubKey
 }
 -- same imput, same hash
@@ -26,8 +26,13 @@ fact SignatureCannonicity {
 	}
 }
 
-sig Transaction {
-	newOwner : one PubKey,
+abstract sig Transaction {
+	newOwner : one PubKey
+}
+
+sig GenesisTransaction extends Transaction {}
+
+sig RealTransaction extends Transaction{
 	hash : one Hash,
 	oldOwner : one Signature
 }{
