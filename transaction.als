@@ -27,7 +27,7 @@ sig Signature {
 	signer : one PrivKey
 }
 -- same imput, same key, same hash
-fact SignatureCannonicity {
+fact SignatureCanonicity {
 	all disj a, b : Signature {
 		a.signee != b.signee
 		a.signer != b.signer

@@ -47,7 +47,9 @@ check AsymmetricBlockChain {
 	all disj a, b : Block | a.prevBlock = b => b.prevBlock != a
 } for 8
 
-
+pred NoOrphans {
+	all disj a,b : ChildBlock | a.prevBlock !=b.prevBlock
+}
 
 pred AcyclicTransactionHistory {
 	no ^(hash.old) & iden
@@ -68,7 +70,7 @@ pred SomeGoodBlockChain {
 	all b : Block | GoodBlock[b] -- every block in the chain is good
 }
 
--- this correspounds more closely to how the network actually verifies a block
+-- this corresponds more closely to how the network actually verifies a block
 pred GoodBlock[b : Block] {
 	all t : b.ledger & RealTransaction |
 		-- transactions work from current or older blocks
@@ -90,5 +92,11 @@ check GoodBlockImpliesGoodStuff {
 run {
 	some RealTransaction
 	GoodStuff
-	some disj a, b : ChildBlock | a.prevBlock = b.prevBlock
-} for 5
+	some disj a, b : ChildBlock | a.prevBlock = b.prevBlock -- shows instance with orphan blocks
+} for  8
+
+run {
+	some RealTransaction
+	GoodStuff
+	NoOrphans
+} for  8
