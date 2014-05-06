@@ -31,20 +31,20 @@ one sig GenesisBlock extends Block {}{
 }
 
 sig ChildBlock extends Block {
-	hash: one Block, -- hash points to the previous block
+	prevBlock: one Block, -- prevBlock points to the previous block
 }
 
 fact BlockChildren {
-	acyclic[ChildBlock <: hash, Block]
-	irreflexive[ChildBlock <: hash]
+	acyclic[ChildBlock <: prevBlock, Block]	-- block history is acyclic
+	irreflexive[ChildBlock <: prevBlock]			-- block history is irreflexive
 }
 
-fact NoOrphanTransactions {
-	Block.ledger = Transaction	-- no orphan transaction
+fact NoExtraneousTransactions {
+	Block.ledger = Transaction	-- no transactions not in some block
 }
 
 check AsymmetricBlockChain {
-	all disj a, b : Block | a.hash = b => b.hash != a
+	all disj a, b : Block | a.prevBlock = b => b.prevBlock != a
 } for 8
 
 
@@ -63,16 +63,17 @@ pred NoMissingOrExtraCoins {
 	#GenesisTransaction = #(Transaction - RealTransaction.hash.old)
 }
 
-pred OneGoodBlockChain {
-	one Block - (ChildBlock.hash) -- one tip/leaf/chain
-	all b : ChildBlock | GoodBlock[b]
+pred SomeGoodBlockChain {
+	some Block - (ChildBlock.prevBlock) -- some branches
+	some tip : Block - (ChildBlock.prevBlock) | -- some chain s.t.
+		all b : tip.(^prevBlock + iden) | GoodBlock[b] -- every block in the chain is good
 }
 
 -- this correspounds more closely to how the network actually verifies a block
 pred GoodBlock[b : Block] {
 	all t : b.ledger & RealTransaction |
 		-- transactions work from current or older blocks
-		some t.^(hash.old) & (b.(^hash).ledger + (b.ledger & GenesisTransaction))
+		some t.^(hash.old) & (b.(^prevBlock).ledger + (b.ledger & GenesisTransaction))
 }
 
 pred GoodStuff {
@@ -83,7 +84,11 @@ pred GoodStuff {
 
 -- make sure that criteria for a block to be accepted implies the properties we actually care about
 check GoodBlockImpliesGoodStuff {
-	OneGoodBlockChain => GoodStuff
+	SomeGoodBlockChain => GoodStuff
 }
 -- make sure GoodStuff is even possible, as impposible => impossible is trivially satisfied
-run { some RealTransaction and GoodStuff } for 5
+run {
+	some RealTransaction
+	GoodStuff
+	some disj a, b : ChildBlock | a.prevBlock = b.prevBlock
+} for 5
