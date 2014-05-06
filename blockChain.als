@@ -64,9 +64,8 @@ pred NoMissingOrExtraCoins {
 }
 
 pred SomeGoodBlockChain {
-	some Block - (ChildBlock.prevBlock) -- some branches
-	some tip : Block - (ChildBlock.prevBlock) | -- some chain s.t.
-		all b : tip.(^prevBlock + iden) | GoodBlock[b] -- every block in the chain is good
+	one Block - (ChildBlock.prevBlock) -- some branches
+	all b : Block | GoodBlock[b] -- every block in the chain is good
 }
 
 -- this correspounds more closely to how the network actually verifies a block
@@ -74,6 +73,7 @@ pred GoodBlock[b : Block] {
 	all t : b.ledger & RealTransaction |
 		-- transactions work from current or older blocks
 		some t.^(hash.old) & (b.(^prevBlock).ledger + (b.ledger & GenesisTransaction))
+	all disj a,b : RealTransaction | no a.^(hash.old) & b.^(hash.old)
 }
 
 pred GoodStuff {
@@ -85,7 +85,7 @@ pred GoodStuff {
 -- make sure that criteria for a block to be accepted implies the properties we actually care about
 check GoodBlockImpliesGoodStuff {
 	SomeGoodBlockChain => GoodStuff
-}
+} for 8
 -- make sure GoodStuff is even possible, as impposible => impossible is trivially satisfied
 run {
 	some RealTransaction
