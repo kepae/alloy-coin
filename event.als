@@ -1,5 +1,7 @@
 module event [TimeState]
-
+/*
+	The basic event ideom library as discussed by Daniel Jackson
+*/
 open util/ordering [TimeState]
 
 abstract sig Event {
