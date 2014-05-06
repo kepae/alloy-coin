@@ -1,10 +1,20 @@
 module blockChain
+/*
+	Bitcoin nodes may in theory submit any sort of garbage or attack to the network. Thus the protocol itself has to be resilient to attack.
+
+	In order to model this, we have a few restrictions on the entire blockchain (really "blocktree" counting orphan nodes), but next to none
+	on what the blocks themselves look like. Instead we then define a predicate roughly corrosponding to how a block could be declared valid,
+	and then show that a chain composed of blocks satisfying that predicate implies the properties we want.
+
+	In reality, other non-canon block chains, called orphans, are fine. But it is easier to write the correctness properties
+	if there is only one block chain, rather than a "block tree".
+*/
 
 open util/relation as rel
 
 open transaction
-//open util/ordering [Block]
 
+-- every block contains a set of transactions
 abstract sig Block {
 	ledger: set Transaction,
 }{
@@ -21,11 +31,7 @@ one sig GenesisBlock extends Block {}{
 }
 
 sig ChildBlock extends Block {
-	hash: one Block,
-}
-
-fact HashCannonicity {
-	all disj a, b : ChildBlock | a.hash != b.hash
+	hash: one Block, -- hash points to the previous block
 }
 
 fact BlockChildren {
@@ -43,13 +49,17 @@ check AsymmetricBlockChain {
 
 
 
-
 pred AcyclicTransactionHistory {
 	no ^(hash.old) & iden
 }
 
+-- no two different transactions share a previous the previous commit
+pred NoDoubleSpend {
+	no (hash.old).~(hash.old) - iden
+}
+
  -- the number of coins in circulation at the end = number of coins spawned
-pred NoFraud {
+pred NoMissingOrExtraCoins {
 	#GenesisTransaction = #(Transaction - RealTransaction.hash.old)
 }
 
@@ -58,18 +68,22 @@ pred OneGoodBlockChain {
 	all b : ChildBlock | GoodBlock[b]
 }
 
-pred GoodBlock[b : Block] { -- transactions work from current or older blocks
+-- this correspounds more closely to how the network actually verifies a block
+pred GoodBlock[b : Block] {
 	all t : b.ledger & RealTransaction |
+		-- transactions work from current or older blocks
 		some t.^(hash.old) & (b.(^hash).ledger + (b.ledger & GenesisTransaction))
 }
 
 pred GoodStuff {
 	AcyclicTransactionHistory
-	NoFraud
+	NoMissingOrExtraCoins
+	NoDoubleSpend
 }
 
+-- make sure that criteria for a block to be accepted implies the properties we actually care about
 check GoodBlockImpliesGoodStuff {
 	OneGoodBlockChain => GoodStuff
 }
--- make sure GoodStuff is even possible
+-- make sure GoodStuff is even possible, as impposible => impossible is trivially satisfied
 run { some RealTransaction and GoodStuff } for 5
