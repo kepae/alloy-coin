@@ -1,0 +1,81 @@
+﻿Modeling Bitcoin Transactions and the Blockchain with Alloy
+John Ericson & Kevin Paeth
+
+
+Foreword: one can skip to “Modeling with Alloy” for time and/or leisure purposes; the leading sections are brief descriptions of the system should the reader like to read a friendly introduction.
+
+
+_________________________________________________________________
+
+
+About Bitcoin
+
+
+The primary use of Bitcoin is to exchange currency with untrusted parties in a publicly verified and decentralized environment. Without relying on financial institutions, the concept of “verification” becomes different than those of a fiat money exchange. The published author and “creator” of Bitcoin, Satoshi Nakamoto, says this about current financial systems:
+“... While the system works well enough for most transactions, it still suffers from the inherent weaknesses of the trust based model.” [1]
+        To this end, Bitcoin serves as an alternative to trusting a third-party financial institution to mediate the discrepancies and credibility of parties by offering a system based on “cryptographic proof” instead of trust.
+
+
+About Transactions
+        
+         Transaction credibility is derived from computational problems that are highly impractical and inefficient to reverse, and these transactions collectively form a sequence of events that are distributed across a timestamp server to become part of a higher ledger of transaction history. Ultimately, this “transaction history” becomes known as the blockchain, which stores every transaction between addresses- ever.
+        A bitcoin is represented by a chain of digital signatures, where the owner transfers the coin by signing a hash of the previous transaction with the public key of the next owner. This leaves the recipient able to verify with their private key that the address truly belongs to them. However, this does not allow the recipient to verify they are the only one to receive the coin- i.e., if there is “double spending.”
+        Instead of trusting a central authority, the peer network needs to establish a protocol for accepting which transactions are “valid.” For the purpose of bitcoin, transactions that are witnessed first in the network’s common blockchain and are digitally signed with an asymmetric key pair corresponding to the recipient become part of a legitimate transaction history in the blockchain. Wisely said, “The only way to confirm the absence of a transaction is to be aware of all transactions,” Nakamoto[2] writes. The recipient of payment, the payee, can verify amongst other users in the network that they also received notice of this transaction first, and can thus confirm that double spending has not occurred.
+
+
+About the Network and Timestamp Server, and the Blockchain
+        
+        The server operates by taking a set of transactions, a “block,” and publicizing a hash of the events. One might imagine this being done in a newspaper, or as Nakamoto suggests, a Usenet post! This proves the data (read: transactions) must have existed to create the deterministic hash, which will be re-hashed for the next timestamp. This ensures that “re-writing” the transaction history is extremely impractical. To change or substitute a block, one must re-hash all of the earlier chained events sufficiently.
+        This process would be invalidated with a reversible and reproducible process, so the “proof-of-work” concept is utilized:
+“The proof-of-work involves scanning for a value that when hashed, such as with SHA-256, the hash begins with a number of zero bits. The average work required is exponential in the number of zero bits required and can be verified by executing a single hash.” [3]
+
+
+        Briefly, the referenced paper provides this canonical protocol for verification and construction of the blockchain:
+
+
+        1) New transactions are broadcast to all nodes.
+2) Each node collects new transactions into a block. 
+3) Each node works on finding a difficult proof-of-work for its block.
+4) When a node finds a proof-of-work, it broadcasts the block to all nodes.
+5) Nodes accept the block only if all transactions in it are valid and not already spent.
+6) Nodes express their acceptance of the block by working on creating the next block in the chain, using the hash of the accepted block as the previous hash.
+
+
+___________________________________________
+
+
+Modeling with Alloy
+
+
+In our models, we elected to focus on the distributed state of the economy, rather than the miscellaneous details of how information is sent. We made this choice both because of Alloy’s utility in modeling the abstract state of the world that no running program or actor would fully be aware of, and because the notions of this state being valid are some of the most interesting part of Bitcoin. This means focusing on fundamental assertions concerning:
+
+
+* the integrity of individual transaction ledgers (“blocks”)
+* the overall integrity of the blockchain when referring to, hashing, and maintaining the ledger histories
+
+
+Transactions
+
+
+Concerning modeling a transaction, this requires considering a chain with a “genesis” transaction- bitcoin “mined” from creating the proof-of-work necessary to verify and increment the currency supply. After this, infinite transactions may occur between any number of finite addresses, as long as the new owner can verify that their payment was signed by the sender via an asymmetric key pair.
+        In addition to creating an asymmetric key-pairing module, we implemented the event-based idiom commonly seen in our canonical text, Software Abstractions: Logic, Language, and Analysis. This in mind, we were able to create a suitable abstraction of the cryptographic processes that sign and verify individual transactions to look at the broader scheme. We treat a finite transaction history with its own “genesis transaction” as something analogous to a block- a ledger of transactions in the past given amount of time. They may or may not have been verified repeatedly in the blockchain.
+        While this is really just an element of the blockchain, we wanted to flesh out the actual model in this space in the event that its properties would interact with those of the blockchain.
+        Being basic (yet fundamental), we verified that the transaction history was acyclic. However, this means that an address can still send currency to itself, albeit with a new hash for the new transaction and verification; the transaction chain continues. One might argue this is cyclic if one does not consider the hash canonicity (from a pure currency perspective), but the block still includes this transaction in the ledger. Aside: it would be interesting to check the actual program procedure that follows the transaction history in this edge case.
+        Our arguably more important assertion, no “double spending” of bitcoins, has an even more fundamental necessity. Being able to give the same bitcoin to two different addresses in a verified history has the dramatic effect of allowing an infinitely growing currency supply- not to mention allowing users to game the system. The creation of Bitcoin, and any currency, relies on the assertion that the number of units in circulation does not succeed the minted/printed/mined units.
+        A key modeling choice was to conflate the notion of a bitcoin and a “satoshi”. If bitcoins are dollars, satoshis are cents, the actual indivisible unit of bitcoin. When any transaction is allowed  to involve arbitrary amounts of satoshis, checking for double spending become more tedious and no more interesting. Assuming that every transaction involves one individual unit of bitcoin makes checking for double spending as simple as ensuring no two “accepted” transactions share the same previous commit. As one might expect this translates to a certain relation must be injective. The alternative would be to add up the bitcoin transferred in the case of a shared ancestor transaction, and validate the sum. This is, in our view, extra work in alloy with little practical gain in our understanding of bitcoin.
+
+
+Blockchain
+Theoretically-ideal bitcoin might be viewed as just a tree of transactions. In practice transactions are broadcasted, verified, and stored in bunches, called blocks. Due to the use of blocks in the mining side of bitcoin, however, we decided that the block nature of bitcoin was worthy of modeling, and not an unimportant implementation detail used to, let’s say, simply limit network traffic.
+We looked at what bitcoin’s notion of a correct block was, extrapolated from it’s notion of a valid transaction, and used alloy to show how this notion implied the various properties about the economy that actually matter (e.g. no fraud or double spending), fall out from the properties of the block chain and its individual transactions. This means that our well-defined and fundamental transactions would ideally lead to stability in the blockchain. 
+        Additionally, we tried multiple converse predicates to operate so that we might see the blockchain in different states. We eventually settled on a canonical representation of a good block. We intentionally chose to let the hashing relation represent and assume the hashing of the previous transactions histories, in addition to the block, as compared to explicitly relating the newer block to every older element. This is important because the head of the chain should contain information about every transaction that has occurred.
+        A problem we discovered in modeling the block chain is the notion of consensus. Non-malicious, standardly configured actors will add transaction to the longest blockchain, ie branch of the tree. In this way, as long as honest nodes make up the majority of the computational power of the network, the honest branch will be the longest, “naive” nodes will work with it, it will be longer still, and so forth. Unfortunately we couldn’t find a way to grasp the notion of the longest chain in the tree, and suspect, like transitive closure, it is in fact inexpressible in first order logic. We instead fell back at just looking for “valid” branches, and verifying properties on them, ignoring the dynamic aspects of nodes choosing which branch to extend as outlined above.
+        Another decision we made is when analyzing valid branches, to disallow orphan branches (invalid or not) all together. To this end, we have toggled on and off the ability to spawn orphan block instances so that we might test a more convenient block chain for its properties. Because orphan blocks are ultimately ignored in the protocol by the client, they do not contribute to the proper functioning of a block chain when the node references it. Our intentions were to analyze this “proper” chain- otherwise counting fraud and double spending becomes complicated beyond the scope of our goals. The alternative would have been to clutter our quantifications explicitly ignoring blocks in orphan nodes. This would have technically allowed us to demonstrate, rather than assume, that orphan nodes “don’t matter”, but we believe the real benefits are less, as ignoring blocks in every quantification is hardly that different from outlawing them in the instance altogether.
+        Nonetheless, we have successfully checked that the properties we were looking to verify did appear. This means that again in the block chain there is an acyclic transaction history from the viewpoint of a node. Additionally verifying the currency supply was tricky, only because each newly mined block would increase the supply, but again we verified that the supply was consistent with the transaction ledgers in each block. Finally, we confirmed that no double spending would occur in our model, which is exactly paralleled by Satoshi Nakamoto’s intentions of the digital currency.
+        
+
+
+References
+[1] Satoshi Nakamoto, “Bitcoin: A Peer-to-Peer Electronic Cash System," https://bitcoin.org/bitcoin.pdf, 2008. pg 1
+[2] pg 2
+[3] pg 3
